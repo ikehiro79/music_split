@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+output/
+*_split/
+.pytest_cache/
+.mypy_cache/
