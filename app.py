@@ -73,7 +73,7 @@ class SplitSettings:
 class MusicSplitApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("MP3 Silence Splitter")
+        self.title("MP3無音分割")
         self.geometry("1180x760")
         self.minsize(980, 640)
 
@@ -94,14 +94,14 @@ class MusicSplitApp(tk.Tk):
         self.play_cursor_line = None
         self.split_cursor_lines = []
 
-        self.file_var = tk.StringVar(value="Select an MP3 file")
+        self.file_var = tk.StringVar(value="MP3ファイルを選択してください")
         self.duration_var = tk.StringVar(value="-")
         self.position_var = tk.StringVar(value="00:00.000")
         self.silence_seconds_var = tk.StringVar(value="2.0")
         self.threshold_var = tk.StringVar(value="-35")
         self.keep_silence_var = tk.StringVar(value="150")
         self.output_dir_var = tk.StringVar(value=str(Path.cwd() / "output"))
-        self.status_var = tk.StringVar(value="Ready")
+        self.status_var = tk.StringVar(value="待機中")
 
         self._build_ui()
         self.after(100, self._poll_results)
@@ -115,7 +115,7 @@ class MusicSplitApp(tk.Tk):
         header.grid(row=0, column=0, sticky="ew")
         header.columnconfigure(1, weight=1)
 
-        ttk.Button(header, text="Open MP3", command=self.open_mp3).grid(row=0, column=0, sticky="w")
+        ttk.Button(header, text="MP3を開く", command=self.open_mp3).grid(row=0, column=0, sticky="w")
         ttk.Label(header, textvariable=self.file_var, anchor="w").grid(row=0, column=1, sticky="ew", padx=12)
         ttk.Label(header, textvariable=self.duration_var, anchor="e").grid(row=0, column=2, sticky="e")
 
@@ -126,9 +126,9 @@ class MusicSplitApp(tk.Tk):
 
         self.figure = Figure(figsize=(9, 4.8), dpi=100)
         self.axis = self.figure.add_subplot(111)
-        self.axis.set_title("Waveform")
-        self.axis.set_xlabel("Time (s)")
-        self.axis.set_ylabel("Amplitude")
+        self.axis.set_title("波形")
+        self.axis.set_xlabel("時間 (秒)")
+        self.axis.set_ylabel("振幅")
         self.axis.grid(True, alpha=0.25)
         self.canvas = FigureCanvasTkAgg(self.figure, master=main)
         self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
@@ -139,29 +139,29 @@ class MusicSplitApp(tk.Tk):
         for index in range(9):
             controls.columnconfigure(index, weight=1 if index in (1, 3, 5) else 0)
 
-        ttk.Label(controls, text="Silence seconds").grid(row=0, column=0, sticky="w")
+        ttk.Label(controls, text="無音秒数").grid(row=0, column=0, sticky="w")
         ttk.Entry(controls, textvariable=self.silence_seconds_var, width=10).grid(row=0, column=1, sticky="w", padx=(8, 16))
-        ttk.Label(controls, text="Threshold dBFS").grid(row=0, column=2, sticky="w")
+        ttk.Label(controls, text="無音しきい値 dBFS").grid(row=0, column=2, sticky="w")
         ttk.Entry(controls, textvariable=self.threshold_var, width=10).grid(row=0, column=3, sticky="w", padx=(8, 16))
-        ttk.Label(controls, text="Keep silence ms").grid(row=0, column=4, sticky="w")
+        ttk.Label(controls, text="保持する無音 ms").grid(row=0, column=4, sticky="w")
         ttk.Entry(controls, textvariable=self.keep_silence_var, width=10).grid(row=0, column=5, sticky="w", padx=(8, 16))
-        ttk.Button(controls, text="Detect Split Points", command=self.detect_split_positions).grid(row=0, column=6, sticky="e", padx=(0, 8))
-        ttk.Button(controls, text="Output", command=self.choose_output_dir).grid(row=0, column=7, sticky="e", padx=(0, 8))
-        ttk.Button(controls, text="Split and Save", command=self.split_audio).grid(row=0, column=8, sticky="e")
+        ttk.Button(controls, text="分割位置を検出", command=self.detect_split_positions).grid(row=0, column=6, sticky="e", padx=(0, 8))
+        ttk.Button(controls, text="保存先", command=self.choose_output_dir).grid(row=0, column=7, sticky="e", padx=(0, 8))
+        ttk.Button(controls, text="分割して保存", command=self.split_audio).grid(row=0, column=8, sticky="e")
 
         playback = ttk.Frame(main, padding=(0, 10, 0, 0))
         playback.grid(row=2, column=0, sticky="ew")
         playback.columnconfigure(4, weight=1)
-        ttk.Button(playback, text="Play", command=self.play_audio).grid(row=0, column=0, sticky="w")
-        ttk.Button(playback, text="Pause", command=self.pause_audio).grid(row=0, column=1, sticky="w", padx=(8, 0))
-        ttk.Button(playback, text="Stop", command=self.stop_audio).grid(row=0, column=2, sticky="w", padx=(8, 0))
-        ttk.Label(playback, text="Position").grid(row=0, column=3, sticky="w", padx=(18, 8))
+        ttk.Button(playback, text="再生", command=self.play_audio).grid(row=0, column=0, sticky="w")
+        ttk.Button(playback, text="一時停止", command=self.pause_audio).grid(row=0, column=1, sticky="w", padx=(8, 0))
+        ttk.Button(playback, text="停止", command=self.stop_audio).grid(row=0, column=2, sticky="w", padx=(8, 0))
+        ttk.Label(playback, text="再生位置").grid(row=0, column=3, sticky="w", padx=(18, 8))
         ttk.Label(playback, textvariable=self.position_var, anchor="w").grid(row=0, column=4, sticky="ew")
 
         output_row = ttk.Frame(main, padding=(0, 10, 0, 0))
         output_row.grid(row=3, column=0, sticky="ew")
         output_row.columnconfigure(1, weight=1)
-        ttk.Label(output_row, text="Output").grid(row=0, column=0, sticky="w")
+        ttk.Label(output_row, text="保存先").grid(row=0, column=0, sticky="w")
         ttk.Label(output_row, textvariable=self.output_dir_var, anchor="w").grid(row=0, column=1, sticky="ew", padx=(8, 0))
 
         status = ttk.Label(self, textvariable=self.status_var, anchor="w", padding=(16, 0, 16, 12))
@@ -169,20 +169,20 @@ class MusicSplitApp(tk.Tk):
 
     def open_mp3(self) -> None:
         file_name = filedialog.askopenfilename(
-            title="Select MP3 file",
-            filetypes=[("MP3 files", "*.mp3"), ("All files", "*.*")],
+            title="MP3ファイルを選択",
+            filetypes=[("MP3ファイル", "*.mp3"), ("すべてのファイル", "*.*")],
         )
         if not file_name:
             return
 
         path = Path(file_name)
         try:
-            self.status_var.set("Loading...")
+            self.status_var.set("読み込み中...")
             self.update_idletasks()
             audio = AudioSegment.from_mp3(path)
         except Exception as exc:
-            messagebox.showerror("Load Error", f"Could not load the MP3 file.\n\n{exc}")
-            self.status_var.set("Load failed")
+            messagebox.showerror("読み込みエラー", f"MP3ファイルを読み込めませんでした。\n\n{exc}")
+            self.status_var.set("読み込み失敗")
             return
 
         self.pause_audio()
@@ -191,38 +191,38 @@ class MusicSplitApp(tk.Tk):
         self.playback_position_ms = 0
         self.split_points_ms = []
         self.file_var.set(path.name)
-        self.duration_var.set(f"{len(audio) / 1000:.2f} sec / {audio.frame_rate:,} Hz")
+        self.duration_var.set(f"{len(audio) / 1000:.2f} 秒 / {audio.frame_rate:,} Hz")
         self.position_var.set(_format_time(0))
         self.output_dir_var.set(str(path.with_name(f"{path.stem}_split")))
         self._prepare_playback_file(path)
-        self.status_var.set("Drawing waveform...")
+        self.status_var.set("波形を描画中...")
         self._draw_waveform(audio)
-        self.status_var.set("Loaded")
+        self.status_var.set("読み込み完了")
 
     def choose_output_dir(self) -> None:
-        directory = filedialog.askdirectory(title="Select output folder")
+        directory = filedialog.askdirectory(title="保存先フォルダを選択")
         if directory:
             self.output_dir_var.set(directory)
 
     def detect_split_positions(self) -> None:
         if self.audio is None:
-            messagebox.showinfo("No MP3 Selected", "Select an MP3 file first.")
+            messagebox.showinfo("MP3未選択", "先にMP3ファイルを選択してください。")
             return
 
         try:
             settings = self._read_settings()
         except ValueError as exc:
-            messagebox.showerror("Input Error", str(exc))
+            messagebox.showerror("入力エラー", str(exc))
             return
 
         silent_ranges, split_points = self._detect_split_points(settings, self.audio)
         self.split_points_ms = split_points
         self._refresh_cursors()
-        self.status_var.set(f"Detected {len(split_points)} split points from {len(silent_ranges)} silent ranges")
+        self.status_var.set(f"分割位置 {len(split_points)} 個を検出しました。検出無音: {len(silent_ranges)} 箇所")
 
     def split_audio(self) -> None:
         if self.audio is None or self.audio_path is None:
-            messagebox.showinfo("No MP3 Selected", "Select an MP3 file first.")
+            messagebox.showinfo("MP3未選択", "先にMP3ファイルを選択してください。")
             return
         if self.worker and self.worker.is_alive():
             return
@@ -230,10 +230,10 @@ class MusicSplitApp(tk.Tk):
         try:
             settings = self._read_settings()
         except ValueError as exc:
-            messagebox.showerror("Input Error", str(exc))
+            messagebox.showerror("入力エラー", str(exc))
             return
 
-        self.status_var.set("Detecting silence and splitting...")
+        self.status_var.set("無音を検出して分割中...")
         self.worker = threading.Thread(
             target=self._split_worker,
             args=(self.audio, self.audio_path, settings),
@@ -243,7 +243,7 @@ class MusicSplitApp(tk.Tk):
 
     def play_audio(self) -> None:
         if self.audio is None or self.playback_file is None:
-            messagebox.showinfo("No MP3 Selected", "Select an MP3 file first.")
+            messagebox.showinfo("MP3未選択", "先にMP3ファイルを選択してください。")
             return
 
         try:
@@ -253,10 +253,10 @@ class MusicSplitApp(tk.Tk):
             self.playback_started_at = time.perf_counter()
             pygame.mixer.music.play(start=self.playback_start_ms / 1000)
             self.is_playing = True
-            self.status_var.set("Playing")
+            self.status_var.set("再生中")
         except Exception as exc:
             self.is_playing = False
-            messagebox.showerror("Playback Error", f"Could not play the MP3 file.\n\n{exc}")
+            messagebox.showerror("再生エラー", f"MP3ファイルを再生できませんでした。\n\n{exc}")
 
     def pause_audio(self) -> None:
         if self.is_playing:
@@ -264,7 +264,7 @@ class MusicSplitApp(tk.Tk):
         if self.mixer_ready:
             pygame.mixer.music.stop()
         self.is_playing = False
-        self.status_var.set("Paused" if self.audio else "Ready")
+        self.status_var.set("一時停止" if self.audio else "待機中")
         self._refresh_cursors()
 
     def stop_audio(self) -> None:
@@ -273,7 +273,7 @@ class MusicSplitApp(tk.Tk):
         self.is_playing = False
         self.playback_position_ms = 0
         self.position_var.set(_format_time(0))
-        self.status_var.set("Stopped" if self.audio else "Ready")
+        self.status_var.set("停止" if self.audio else "待機中")
         self._refresh_cursors()
 
     def _read_settings(self) -> SplitSettings:
@@ -282,12 +282,12 @@ class MusicSplitApp(tk.Tk):
             threshold = float(self.threshold_var.get())
             keep_silence = int(self.keep_silence_var.get())
         except ValueError as exc:
-            raise ValueError("Seconds, threshold, and keep-silence values must be numeric.") from exc
+            raise ValueError("秒数、しきい値、保持する無音は数値で入力してください。") from exc
 
         if silence_seconds <= 0:
-            raise ValueError("Silence seconds must be greater than 0.")
+            raise ValueError("無音秒数は0より大きい値を入力してください。")
         if keep_silence < 0:
-            raise ValueError("Keep silence ms must be 0 or greater.")
+            raise ValueError("保持する無音 ms は0以上で入力してください。")
 
         return SplitSettings(
             min_silence_ms=round(silence_seconds * 1000),
@@ -310,9 +310,9 @@ class MusicSplitApp(tk.Tk):
 
         self.axis.clear()
         self.axis.plot(xs, normalized, linewidth=0.7, color="#1f77b4")
-        self.axis.set_title(self.audio_path.name if self.audio_path else "Waveform")
-        self.axis.set_xlabel("Time (s)")
-        self.axis.set_ylabel("Amplitude")
+        self.axis.set_title(self.audio_path.name if self.audio_path else "波形")
+        self.axis.set_xlabel("時間 (秒)")
+        self.axis.set_ylabel("振幅")
         self.axis.set_ylim(-1.05, 1.05)
         self.axis.grid(True, alpha=0.25)
         self.figure.tight_layout()
@@ -350,11 +350,11 @@ class MusicSplitApp(tk.Tk):
             saved_files, silent_ranges = payload
             self.split_points_ms = [round((start + end) / 2) for start, end in silent_ranges]
             self._refresh_cursors()
-            self.status_var.set(f"Saved {len(saved_files)} MP3 files. Silent ranges: {len(silent_ranges)}")
-            messagebox.showinfo("Done", f"Saved {len(saved_files)} MP3 files.\n\n{self.output_dir_var.get()}")
+            self.status_var.set(f"{len(saved_files)} 個のMP3を保存しました。検出無音: {len(silent_ranges)} 箇所")
+            messagebox.showinfo("保存完了", f"{len(saved_files)} 個のMP3を保存しました。\n\n{self.output_dir_var.get()}")
         else:
-            self.status_var.set("Split failed")
-            messagebox.showerror("Split Error", f"Could not split the MP3 file.\n\n{payload}")
+            self.status_var.set("分割失敗")
+            messagebox.showerror("分割エラー", f"MP3ファイルの分割に失敗しました。\n\n{payload}")
 
         self.after(100, self._poll_results)
 
@@ -418,7 +418,7 @@ class MusicSplitApp(tk.Tk):
                 self.stop_audio()
             elif self.mixer_ready and not pygame.mixer.music.get_busy():
                 self.is_playing = False
-                self.status_var.set("Playback ended")
+                self.status_var.set("再生終了")
             self._refresh_cursors()
 
         self.after(100, self._tick_playback)
