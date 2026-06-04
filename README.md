@@ -26,13 +26,17 @@ python app.py
 
 ## Usage
 
-1. Click `Open MP3` and select a music file.
+1. Click `MP3を開く` and select a music file.
 2. The waveform is displayed in the main area.
-3. Use `Play`, `Pause`, and `Stop` to preview the track.
+3. Use `再生`, `一時停止`, and `停止` to preview the track.
 4. Click the waveform to move the green playback cursor.
-5. Enter the required silence length in `Silence seconds`.
-6. Click `Detect Split Points` to show red dashed split cursors.
-7. Adjust `Threshold dBFS` and `Keep silence ms` if needed.
-8. Click `Split and Save`; numbered MP3 files are written to the output folder.
+5. Drag a rectangle on the waveform to zoom into that time range.
+6. Use `時間目盛り` to choose the graph's time tick spacing.
+7. Click `拡大をリセット` to return to the full waveform.
+8. Enter the required silence length in `無音秒数`.
+9. Click `分割位置を検出` to show red dashed split cursors.
+10. Double-click a red split cursor to delete it.
+11. Adjust `無音しきい値 dBFS` and `保持する無音 ms` if needed.
+12. Click `分割して保存`; numbered MP3 files are written to the output folder.
 
 Lower threshold values are stricter. `-35` dBFS is a practical starting point for many tracks.
