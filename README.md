@@ -28,8 +28,11 @@ python app.py
 
 1. Click `Open MP3` and select a music file.
 2. The waveform is displayed in the main area.
-3. Enter the required silence length in `Silence seconds`.
-4. Adjust `Threshold dBFS` and `Keep silence ms` if needed.
-5. Click `Split and Save`; numbered MP3 files are written to the output folder.
+3. Use `Play`, `Pause`, and `Stop` to preview the track.
+4. Click the waveform to move the green playback cursor.
+5. Enter the required silence length in `Silence seconds`.
+6. Click `Detect Split Points` to show red dashed split cursors.
+7. Adjust `Threshold dBFS` and `Keep silence ms` if needed.
+8. Click `Split and Save`; numbered MP3 files are written to the output folder.
 
 Lower threshold values are stricter. `-35` dBFS is a practical starting point for many tracks.
