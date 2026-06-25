@@ -67,6 +67,8 @@ TIME_SCALE_OPTIONS: dict[str, float | None] = {
     "5分": 300,
 }
 
+DRAG_MODE_OPTIONS = ("拡大", "分割範囲")
+
 
 def configure_ffmpeg() -> None:
     ffmpeg_path = shutil.which("ffmpeg") or _find_winget_tool("ffmpeg.exe")
@@ -144,6 +146,7 @@ class MusicSplitApp(tk.Tk):
         self.keep_silence_var = tk.StringVar(value="150")
         self.output_dir_var = tk.StringVar(value=str(Path.cwd() / "output"))
         self.time_scale_var = tk.StringVar(value="自動")
+        self.drag_mode_var = tk.StringVar(value="拡大")
         self.status_var = tk.StringVar(value="待機中")
 
         self._build_ui()
@@ -178,6 +181,7 @@ class MusicSplitApp(tk.Tk):
         self.canvas.mpl_connect("button_press_event", self._on_waveform_press)
         self.canvas.mpl_connect("motion_notify_event", self._on_waveform_drag)
         self.canvas.mpl_connect("button_release_event", self._on_waveform_release)
+        self.canvas.mpl_connect("scroll_event", self._on_waveform_scroll)
 
         controls = ttk.Frame(main, padding=(0, 12, 0, 0))
         controls.grid(row=1, column=0, sticky="ew")
@@ -196,7 +200,7 @@ class MusicSplitApp(tk.Tk):
 
         playback = ttk.Frame(main, padding=(0, 10, 0, 0))
         playback.grid(row=2, column=0, sticky="ew")
-        playback.columnconfigure(8, weight=1)
+        playback.columnconfigure(10, weight=1)
         ttk.Button(playback, text="再生", command=self.play_audio).grid(row=0, column=0, sticky="w")
         ttk.Button(playback, text="一時停止", command=self.pause_audio).grid(row=0, column=1, sticky="w", padx=(8, 0))
         ttk.Button(playback, text="停止", command=self.stop_audio).grid(row=0, column=2, sticky="w", padx=(8, 0))
@@ -213,6 +217,15 @@ class MusicSplitApp(tk.Tk):
         time_scale.grid(row=0, column=6, sticky="w")
         time_scale.bind("<<ComboboxSelected>>", lambda _event: self._apply_time_tick_spacing())
         ttk.Button(playback, text="拡大をリセット", command=self.reset_zoom).grid(row=0, column=7, sticky="w", padx=(8, 0))
+        ttk.Label(playback, text="ドラッグ操作").grid(row=0, column=8, sticky="w", padx=(18, 8))
+        drag_mode = ttk.Combobox(
+            playback,
+            textvariable=self.drag_mode_var,
+            values=DRAG_MODE_OPTIONS,
+            width=10,
+            state="readonly",
+        )
+        drag_mode.grid(row=0, column=9, sticky="w")
 
         output_row = ttk.Frame(main, padding=(0, 10, 0, 0))
         output_row.grid(row=3, column=0, sticky="ew")
@@ -510,13 +523,20 @@ class MusicSplitApp(tk.Tk):
         left, right = sorted((start_x, end_x))
         y_min, y_max = self.axis.get_ylim()
 
+        if self.drag_mode_var.get() == "分割範囲":
+            facecolor = "#d62728"
+            edgecolor = "#8c1d18"
+        else:
+            facecolor = "#4c78a8"
+            edgecolor = "#1f4e79"
+
         if self.zoom_rectangle is None or self.zoom_rectangle.axes is None:
             self.zoom_rectangle = Rectangle(
                 (left, y_min),
                 right - left,
                 y_max - y_min,
-                facecolor="#4c78a8",
-                edgecolor="#1f4e79",
+                facecolor=facecolor,
+                edgecolor=edgecolor,
                 alpha=0.18,
                 linewidth=1.0,
             )
@@ -525,6 +545,8 @@ class MusicSplitApp(tk.Tk):
             self.zoom_rectangle.set_xy((left, y_min))
             self.zoom_rectangle.set_width(right - left)
             self.zoom_rectangle.set_height(y_max - y_min)
+            self.zoom_rectangle.set_facecolor(facecolor)
+            self.zoom_rectangle.set_edgecolor(edgecolor)
         self.canvas.draw_idle()
 
     def _on_waveform_release(self, event) -> None:
@@ -538,9 +560,17 @@ class MusicSplitApp(tk.Tk):
         if self.did_drag_zoom and event.inaxes == self.axis and event.xdata is not None:
             left, right = sorted((start_x, event.xdata))
             if right - left >= 0.05:
-                self.axis.set_xlim(left, right)
-                self._apply_time_tick_spacing(redraw=False)
-                self.status_var.set(f"{left:.2f} 秒から {right:.2f} 秒を拡大表示しました")
+                if self.drag_mode_var.get() == "分割範囲":
+                    added = self._add_split_range(left * 1000, right * 1000)
+                    self.status_var.set(
+                        f"{left:.2f} 秒と {right:.2f} 秒に分割カーソルを追加しました"
+                        if added
+                        else "追加できる分割カーソルはありませんでした"
+                    )
+                else:
+                    self.axis.set_xlim(left, right)
+                    self._apply_time_tick_spacing(redraw=False)
+                    self.status_var.set(f"{left:.2f} 秒から {right:.2f} 秒を拡大表示しました")
             self._remove_zoom_rectangle()
             self._refresh_cursors()
             return
@@ -548,6 +578,36 @@ class MusicSplitApp(tk.Tk):
         self._remove_zoom_rectangle()
         if event.inaxes == self.axis and event.xdata is not None:
             self._move_playback_cursor(event.xdata)
+
+    def _on_waveform_scroll(self, event) -> None:
+        if self.audio is None or event.inaxes != self.axis or event.xdata is None:
+            return
+
+        duration = len(self.audio) / 1000
+        left, right = self.axis.get_xlim()
+        current_width = max(0.05, right - left)
+        scale = 0.8 if event.button == "up" else 1.25
+        new_width = max(0.05, min(duration, current_width * scale))
+        if math.isclose(new_width, current_width, rel_tol=0.001, abs_tol=0.001):
+            return
+
+        anchor = max(0, min(duration, event.xdata))
+        anchor_ratio = (anchor - left) / current_width
+        new_left = anchor - new_width * anchor_ratio
+        new_right = new_left + new_width
+
+        if new_left < 0:
+            new_right -= new_left
+            new_left = 0
+        if new_right > duration:
+            new_left -= new_right - duration
+            new_right = duration
+        new_left = max(0, new_left)
+        new_right = min(duration, new_right)
+
+        self.axis.set_xlim(new_left, new_right)
+        self._apply_time_tick_spacing(redraw=False)
+        self._refresh_cursors()
 
     def _move_playback_cursor(self, seconds: float) -> None:
         if self.audio is None:
@@ -576,6 +636,26 @@ class MusicSplitApp(tk.Tk):
         self.split_points_dirty = True
         self._refresh_cursors()
         return True
+
+    def _add_split_range(self, start_ms: float, end_ms: float) -> bool:
+        if self.audio is None:
+            return False
+
+        audio_length = len(self.audio)
+        new_points = [
+            max(0, min(audio_length, round(start_ms))),
+            max(0, min(audio_length, round(end_ms))),
+        ]
+        added = False
+        for point in new_points:
+            if 0 < point < audio_length and not any(abs(existing - point) <= 10 for existing in self.split_points_ms):
+                self.split_points_ms.append(point)
+                added = True
+
+        if added:
+            self.split_points_ms.sort()
+            self.split_points_dirty = True
+        return added
 
     def _tick_playback(self) -> None:
         if self.is_playing:
