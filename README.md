@@ -20,8 +20,16 @@ winget install Gyan.FFmpeg
 
 ## Run
 
+On Windows, the safest way is to run the launcher. It uses `.venv` automatically, so PowerShell execution policy and Python file associations do not matter.
+
 ```powershell
-python app.py
+.\run_app.bat
+```
+
+You can also run the app directly through the virtual environment:
+
+```powershell
+.\.venv\Scripts\python.exe app.py
 ```
 
 ## Usage

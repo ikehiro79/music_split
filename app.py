@@ -4,6 +4,7 @@ import math
 import os
 import queue
 import shutil
+import sys
 import tempfile
 import threading
 import time
@@ -11,6 +12,29 @@ from dataclasses import dataclass
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 import tkinter as tk
+
+
+def relaunch_from_project_venv() -> None:
+    script_path = Path(__file__).resolve()
+    try:
+        invoked_path = Path(sys.argv[0]).resolve()
+    except OSError:
+        return
+    if invoked_path != script_path:
+        return
+
+    venv_python = script_path.parent / ".venv" / "Scripts" / "python.exe"
+    if not venv_python.exists():
+        return
+
+    current_python = Path(sys.executable).resolve()
+    if current_python == venv_python.resolve():
+        return
+
+    os.execv(str(venv_python), [str(venv_python), str(script_path), *sys.argv[1:]])
+
+
+relaunch_from_project_venv()
 
 import matplotlib
 
