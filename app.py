@@ -137,6 +137,8 @@ class MusicSplitApp(tk.Tk):
         self.zoom_start_px: tuple[float, float] | None = None
         self.zoom_rectangle: Rectangle | None = None
         self.did_drag_zoom = False
+        self.axis_pan_start_x: float | None = None
+        self.axis_pan_start_xlim: tuple[float, float] | None = None
 
         self.file_var = tk.StringVar(value="MP3ファイルを選択してください")
         self.duration_var = tk.StringVar(value="-")
@@ -494,7 +496,16 @@ class MusicSplitApp(tk.Tk):
         self.playback_file = playback_path
 
     def _on_waveform_press(self, event) -> None:
-        if self.audio is None or event.inaxes != self.axis or event.xdata is None or event.button != 1:
+        if self.audio is None or event.button != 1:
+            return
+
+        if self._is_time_axis_event(event):
+            self.axis_pan_start_x = self._event_xdata(event)
+            self.axis_pan_start_xlim = self.axis.get_xlim()
+            self._remove_zoom_rectangle()
+            return
+
+        if event.inaxes != self.axis or event.xdata is None:
             return
 
         if event.dblclick:
@@ -508,6 +519,10 @@ class MusicSplitApp(tk.Tk):
         self.did_drag_zoom = False
 
     def _on_waveform_drag(self, event) -> None:
+        if self.audio is not None and self.axis_pan_start_x is not None:
+            self._pan_time_axis(event)
+            return
+
         if self.audio is None or self.zoom_start_x is None or self.zoom_start_px is None:
             return
         if event.inaxes != self.axis or event.xdata is None:
@@ -550,6 +565,12 @@ class MusicSplitApp(tk.Tk):
         self.canvas.draw_idle()
 
     def _on_waveform_release(self, event) -> None:
+        if self.axis_pan_start_x is not None:
+            self.axis_pan_start_x = None
+            self.axis_pan_start_xlim = None
+            self.status_var.set("時間軸を移動しました")
+            return
+
         if self.audio is None or self.zoom_start_x is None:
             return
 
@@ -578,6 +599,48 @@ class MusicSplitApp(tk.Tk):
         self._remove_zoom_rectangle()
         if event.inaxes == self.axis and event.xdata is not None:
             self._move_playback_cursor(event.xdata)
+
+    def _is_time_axis_event(self, event) -> bool:
+        if event.x is None or event.y is None:
+            return False
+
+        bbox = self.axis.bbox
+        within_x = bbox.x0 <= event.x <= bbox.x1
+        axis_band_top = bbox.y0
+        axis_band_bottom = bbox.y0 - 46
+        return within_x and axis_band_bottom <= event.y <= axis_band_top
+
+    def _event_xdata(self, event) -> float | None:
+        if event.x is None:
+            return None
+        xdata, _ = self.axis.transData.inverted().transform((event.x, self.axis.bbox.y0))
+        return xdata
+
+    def _pan_time_axis(self, event) -> None:
+        if self.audio is None or self.axis_pan_start_x is None or self.axis_pan_start_xlim is None:
+            return
+
+        current_x = self._event_xdata(event)
+        if current_x is None:
+            return
+
+        duration = len(self.audio) / 1000
+        start_left, start_right = self.axis_pan_start_xlim
+        width = start_right - start_left
+        delta = self.axis_pan_start_x - current_x
+        new_left = start_left + delta
+        new_right = start_right + delta
+
+        if new_left < 0:
+            new_left = 0
+            new_right = min(duration, width)
+        if new_right > duration:
+            new_right = duration
+            new_left = max(0, duration - width)
+
+        self.axis.set_xlim(new_left, new_right)
+        self._apply_time_tick_spacing(redraw=False)
+        self._refresh_cursors()
 
     def _on_waveform_scroll(self, event) -> None:
         if self.audio is None or event.inaxes != self.axis or event.xdata is None:
